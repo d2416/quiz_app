@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:quiz_app/question.dart';
+import 'package:rflutter_alert/rflutter_alert.dart';
+import 'package:quiz_app/quiz_brain.dart';
+
+QuizBrain quizBrain = QuizBrain();
 
 void main() {
   runApp(QuizApp());
@@ -28,15 +31,10 @@ class Quiz extends StatefulWidget {
 
 class _QuizState extends State<Quiz> {
   List<Icon> scoreKeeper = [];
-  List<Question> questionsWithAnswers;
-  int questionNumber;
-  Question currentQuestion;
+  String currentQuestion;
   bool quizRunning;
 
   _QuizState() {
-    questionsWithAnswers = buildQuestions();
-    currentQuestion = questionsWithAnswers.first;
-    questionNumber = 0;
     quizRunning = true;
   }
 
@@ -50,6 +48,7 @@ class _QuizState extends State<Quiz> {
         trueOption(),
         falseOption(),
         Row(
+          // TODO allow space from the beginning
           children: scoreKeeper,
         )
       ],
@@ -63,7 +62,7 @@ class _QuizState extends State<Quiz> {
         padding: const EdgeInsets.all(10.0),
         child: Center(
           child: Text(
-            currentQuestion.question ??= "Quiz finished!",
+            quizBrain.getQuestionText(),
             style: TextStyle(
               color: Colors.white,
               fontSize: 25.0,
@@ -78,23 +77,20 @@ class _QuizState extends State<Quiz> {
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.all(15.0),
-        child: Visibility(
-          visible: quizRunning,
-          child: FlatButton(
-            color: Colors.red,
-            child: Text(
-              'False',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 20.0,
-              ),
+        child: FlatButton(
+          color: Colors.red,
+          child: Text(
+            'False',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20.0,
             ),
-            onPressed: () {
-              setState(() {
-                checkAnswer(false);
-              });
-            },
           ),
+          onPressed: () {
+            setState(() {
+              checkAnswer(false);
+            });
+          },
         ),
       ),
     );
@@ -104,23 +100,20 @@ class _QuizState extends State<Quiz> {
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.all(15.0),
-        child: Visibility(
-          visible: quizRunning,
-          child: FlatButton(
-            color: Colors.green,
-            child: Text(
-              'True',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 20.0,
-              ),
+        child: FlatButton(
+          color: Colors.green,
+          child: Text(
+            'True',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20.0,
             ),
-            onPressed: () {
-              setState(() {
-                checkAnswer(true);
-              });
-            },
           ),
+          onPressed: () {
+            setState(() {
+              checkAnswer(true);
+            });
+          },
         ),
       ),
     );
@@ -140,40 +133,35 @@ class _QuizState extends State<Quiz> {
     );
   }
 
-  void checkAnswer(bool answer) {
-    if (currentQuestion.answer == answer) {
-      scoreKeeper.add(buildCorrectAnswerIcon());
+  void checkAnswer(bool userAnswer) {
+    if (quizBrain.isFinished()) {
+      Alert(
+        context: context,
+        type: AlertType.success,
+        title: "Quiz finish!",
+        desc: "No more questions. The quiz will reset.",
+        buttons: [
+          DialogButton(
+            child: Text(
+              "OK",
+              style: TextStyle(color: Colors.white, fontSize: 20),
+            ),
+            onPressed: () => Navigator.pop(context),
+            width: 120,
+          )
+        ],
+      ).show();
+
+      quizBrain.reset();
+      scoreKeeper.clear();
     } else {
-      scoreKeeper.add(buildWrongAnswerIcon());
+      if (quizBrain.getQuestionAnswer() == userAnswer) {
+        scoreKeeper.add(buildCorrectAnswerIcon());
+      } else {
+        scoreKeeper.add(buildWrongAnswerIcon());
+      }
+
+      quizBrain.nextQuestion();
     }
-
-    selectNextQuestion();
-  }
-
-  void selectNextQuestion() {
-    if (questionNumber < questionsWithAnswers.length - 1) {
-      questionNumber++;
-      currentQuestion = questionsWithAnswers[questionNumber];
-    } else {
-      currentQuestion.question = null;
-      quizRunning = false;
-    }
-  }
-
-  List<Question> buildQuestions() {
-    List<Question> questions = [
-      Question("Is pink the most common colour of toilet paper in France?",
-          answer: true),
-      Question("the five rings on the Olympic flag are interlocking?",
-          answer: true),
-      Question("Mount Kilimanjaro is the highest mountain in the world?",
-          answer: false),
-      Question("Strictly Come Dancing first aired in the UK in 2005?",
-          answer: false),
-      Question("a group of swans is known as a bevy?", answer: true),
-      Question("Sydney is the capital of Australia?", answer: false),
-    ];
-
-    return questions;
   }
 }
