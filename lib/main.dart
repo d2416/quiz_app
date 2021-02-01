@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:quiz_app/score_keeper.dart';
 import 'package:rflutter_alert/rflutter_alert.dart';
 import 'package:quiz_app/quiz_brain.dart';
 
@@ -30,13 +31,7 @@ class Quiz extends StatefulWidget {
 }
 
 class _QuizState extends State<Quiz> {
-  List<Icon> scoreKeeper = [];
-  String currentQuestion;
-  bool quizRunning;
-
-  _QuizState() {
-    quizRunning = true;
-  }
+  ScoreKeeper scoreKeeper = ScoreKeeper();
 
   @override
   Widget build(BuildContext context) {
@@ -44,18 +39,24 @@ class _QuizState extends State<Quiz> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        buildQuestionSection(),
-        trueOption(),
-        falseOption(),
-        Row(
-          // TODO allow space from the beginning
-          children: scoreKeeper,
-        )
+        questionSection(),
+        optionButton(Colors.green, 'True', true),
+        optionButton(Colors.red, 'False', false),
+        scoreKeeperSection(),
       ],
     );
   }
 
-  Expanded buildQuestionSection() {
+  Container scoreKeeperSection() {
+    return Container(
+      height: 20.0,
+      child: Row(
+        children: scoreKeeper.getScore(),
+      ),
+    );
+  }
+
+  Expanded questionSection() {
     return Expanded(
       flex: 5,
       child: Padding(
@@ -73,14 +74,14 @@ class _QuizState extends State<Quiz> {
     );
   }
 
-  Expanded falseOption() {
+  Expanded optionButton(Color color, String text, bool option) {
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.all(15.0),
         child: FlatButton(
-          color: Colors.red,
+          color: color,
           child: Text(
-            'False',
+            text,
             style: TextStyle(
               color: Colors.white,
               fontSize: 20.0,
@@ -88,80 +89,48 @@ class _QuizState extends State<Quiz> {
           ),
           onPressed: () {
             setState(() {
-              checkAnswer(false);
+              checkAnswer(option);
             });
           },
         ),
       ),
-    );
-  }
-
-  Expanded trueOption() {
-    return Expanded(
-      child: Padding(
-        padding: const EdgeInsets.all(15.0),
-        child: FlatButton(
-          color: Colors.green,
-          child: Text(
-            'True',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 20.0,
-            ),
-          ),
-          onPressed: () {
-            setState(() {
-              checkAnswer(true);
-            });
-          },
-        ),
-      ),
-    );
-  }
-
-  Icon buildWrongAnswerIcon() {
-    return Icon(
-      Icons.check,
-      color: Colors.green,
-    );
-  }
-
-  Icon buildCorrectAnswerIcon() {
-    return Icon(
-      Icons.close,
-      color: Colors.red,
     );
   }
 
   void checkAnswer(bool userAnswer) {
     if (quizBrain.isFinished()) {
-      Alert(
-        context: context,
-        type: AlertType.success,
-        title: "Quiz finish!",
-        desc: "No more questions. The quiz will reset.",
-        buttons: [
-          DialogButton(
-            child: Text(
-              "OK",
-              style: TextStyle(color: Colors.white, fontSize: 20),
-            ),
-            onPressed: () => Navigator.pop(context),
-            width: 120,
-          )
-        ],
-      ).show();
-
-      quizBrain.reset();
-      scoreKeeper.clear();
+      resetQuiz();
     } else {
       if (quizBrain.getQuestionAnswer() == userAnswer) {
-        scoreKeeper.add(buildCorrectAnswerIcon());
+        scoreKeeper.addAnswer(true);
       } else {
-        scoreKeeper.add(buildWrongAnswerIcon());
+        scoreKeeper.addAnswer(false);
       }
 
       quizBrain.nextQuestion();
     }
+  }
+
+  void resetQuiz() {
+    Alert(
+      context: context,
+      type: AlertType.success,
+      title: "Finished!",
+      desc:
+          "Thank you for participating in our quiz. You got ${scoreKeeper.getCorrectAnswers()} correct answers.",
+      buttons: [
+        DialogButton(
+          child: Text(
+            "Reset",
+            style: TextStyle(color: Colors.white, fontSize: 20),
+          ),
+          onPressed: () => Navigator.pop(context),
+          width: 120,
+        )
+      ],
+    ).show();
+
+    quizBrain.reset();
+    scoreKeeper.clearScore();
   }
 }
